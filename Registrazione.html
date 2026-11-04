@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Retro Gaming - Registrazione</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1 style="text-align: center;">
+        Benvenuto su RetroGaming.it
+    </h1>
+
+    <div style="display: flex; justify-content: center; margin-top: 50px;">
+        <div class="form-container">
+            <!-- Messaggi dinamici -->
+            <div id="messaggio-errore" style="color: #ff4d4d; font-size: 14px; margin-bottom: 15px; text-align: center; display: none;">
+                Errore: questa email è già registrata!
+            </div>
+            <div id="messaggio-successo" style="color: #00ffcc; font-size: 14px; margin-bottom: 15px; text-align: center; display: none;">
+                Registrazione avvenuta con successo! Ora puoi effettuare il login.
+            </div>
+
+            <form id="form-registrazione" action="Registrazione.php" method="POST">
+                <table border="0" cellpadding="5">
+                    <thead>
+                        <tr>
+                            <th colspan="2" style="color: #00ffcc;">Registrazione</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><label for="nome">Nome:</label></td>
+                            <td><input type="text" id="nome" name="nome" required></td>
+                        </tr>
+                        <tr>
+                            <td><label for="cognome">Cognome:</label></td>
+                            <td><input type="text" id="cognome" name="cognome" required></td>
+                        </tr>
+                        <tr>
+                            <td><label for="email">Email:</label></td>
+                            <td><input type="email" id="email" name="email" required></td>
+                        </tr>
+                        <tr>
+                            <td><label for="password">Password:</label></td>
+                            <td><input type="password" id="password" name="password" required></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" style="text-align: center;">
+                                <button type="submit">Invia</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </form>
+
+                <!-- Collegamento per andare al Login -->
+                 <div style="text-align: center; margin-top: 20px;">
+                     <a href="Login">Hai già un account? Accedi</a>
+                 </div>
+        </div>
+    </div>
+
+<!-- SCRIPT JS PER MESSAGGI URL E VALIDAZIONE LATO CLIENT -->
+    <script>
+        // 1. Gestione dei messaggi in arrivo dal PHP (URL)
+        const urlParams = new URLSearchParams(window.location.search);
+        const boxErrore = document.getElementById('messaggio-errore');
+        const boxSuccesso = document.getElementById('messaggio-successo');
+
+        if (urlParams.get('errore') === 'esistente') {
+            boxErrore.innerText = "Errore: questa email è già registrata!";
+            boxErrore.style.display = 'block';
+        } else if (urlParams.get('errore') === 'db') {
+            boxErrore.innerText = "Errore di connessione o salvataggio!";
+            boxErrore.style.display = 'block';
+        }
+
+        if (urlParams.has('successo')) {
+            boxSuccesso.style.display = 'block';
+        }
+
+        // 2. Validazione JavaScript prima dell'invio del form
+        const form = document.getElementById('form-registrazione');
+        const passwordInput = document.getElementById('password');
+
+        form.addEventListener('submit', function(event) {
+            // Esempio: controlliamo che la password sia lunga almeno 6 caratteri
+            if (passwordInput.value.length < 6) {
+                // Blocca l'invio del form al server
+                event.preventDefault();
+                
+                // Mostra il box di errore con un messaggio personalizzato
+                boxErrore.innerText = "Errore: La password deve contenere almeno 6 caratteri!";
+                boxErrore.style.display = 'block';
+                
+                // Nasconde eventuale messaggio di successo precedente
+                boxSuccesso.style.display = 'none';
+                
+                // Evidenzia visivamente il campo password con un bordo rosso
+                passwordInput.style.borderColor = '#ff4d4d';
+            }
+        });
+    </script>
+
+</body>
+</html>

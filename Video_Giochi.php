@@ -127,7 +127,7 @@ $era_videogiochi = [
         <p>&copy; 2026 RetroGaming.it — Tutti i diritti riservati.</p>
     </footer>
 
-    <script src="script.js"></script>
+    <script src="Script.js"></script>
 
 </body>
 </html>

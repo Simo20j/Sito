@@ -1,6 +1,6 @@
 <?php
 // Dati di connessione al database locale
-$host = 'localhost';
+$host = getenv('DB_HOST') ?: 'localhost';
 $db   = 'utenti';     // Nome del tuo database
 $user = 'root';
 $pass = '';

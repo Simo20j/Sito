@@ -5,8 +5,8 @@ services:
       - "8080:80"
     volumes:
       - .:/var/www/html
-    environment:
-      DB_HOST: db
+      # Keeps thousands of dependency files out of the project folder (and OneDrive)
+      - vendor:/var/www/html/vendor
     depends_on:
       db:
         condition: service_healthy
@@ -14,13 +14,12 @@ services:
   db:
     image: mariadb:11
     environment:
-      # Matches the root user with empty password in Login.php and Registrazione.php.
+      # Matches DB_USERNAME=root and the empty DB_PASSWORD in .env.example.
       # For local use only: the database port is not published outside Docker.
       MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "yes"
       MARIADB_DATABASE: utenti
     volumes:
       - db-data:/var/lib/mysql
-      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -29,3 +28,4 @@ services:
 
 volumes:
   db-data:
+  vendor:

@@ -4,57 +4,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-RetroGaming.it: a retro video game blog in plain PHP, HTML, CSS and JavaScript. There is no framework, package manager, build step, linter or test suite. All UI text and code comments are in Italian; keep new ones in Italian.
+RetroGaming.it: a retro video game blog on Laravel 13 (PHP 8.4 in Docker, MariaDB). All UI text and code comments are in Italian; keep new ones in Italian. Class names are English, but database columns are Italian (`titolo`, `nome`, `descrizione`, `voto`).
 
-## Running locally
+## Commands
 
-Run everything through Docker; PHP and MySQL are not installed on this machine.
+Run everything through Docker. The local PHP in `C:\Users\loryp\php` has no `php.ini`, so it lacks extensions Laravel needs, and Composer is not installed on the host.
 
 ```
-docker compose up -d --build              # start, site at http://localhost:8080
-docker compose down                       # stop, keeps accounts
-docker compose down -v                    # stop and delete the database
-docker compose logs -f web                # Apache and PHP errors
-docker compose exec web php -l <file>.php # syntax-check one file
+docker compose up -d --build                                   # start, site at http://localhost:8080
+docker compose down                                            # stop, keeps data
+docker compose down -v                                         # stop, delete database and vendor volumes
+docker compose logs -f web                                     # Apache, PHP and startup output
+docker compose exec web php artisan test                       # all tests
+docker compose exec web php artisan test --filter=AuthTest     # one class or test method
+docker compose exec web composer require <package>             # add a dependency
 ```
 
-The repo folder is bind-mounted into the `web` container, so PHP, CSS and JS edits are live. `docker/init.sql` runs only when the database volume is first created.
+Tests use in-memory SQLite (`phpunit.xml`), so they don't touch the MariaDB data.
 
 If Docker reports `docker-credential-desktop` not found, Docker Desktop's `resources\bin` folder is missing from `PATH` in that shell; prepend it for the command.
 
-The site connects as `root` with an empty password. `$host` comes from the `DB_HOST` environment variable (`db` in Compose) and falls back to `localhost`. `Registrazione.php` treats SQLSTATE 23000 as "email already registered", so `email` must stay UNIQUE.
+In Git Bash, `MSYS_NO_PATHCONV=1` is needed for `docker run -v` paths, but it also breaks `/tmp` and `/dev/null` paths passed to Windows programs such as `curl`.
 
-There is no index page. `docker/apache.conf` redirects `/` to `Login` and forces `Login` to be served as `text/html`, because it has no extension.
+## Docker behaviour
+
+`docker/entrypoint.sh` runs on every start of `web`: it creates `.env` from `.env.example` if missing, runs `composer install`, generates `APP_KEY`, then `php artisan migrate --force --seed`.
+
+- `DatabaseSeeder` runs on every start, so it returns early if articles already exist. New seeders added to it do not run on an existing database; use `docker compose down -v` or run them with `db:seed --class=`.
+- The repo is bind-mounted, so code edits are live. `vendor/` is a named volume to keep it out of the OneDrive folder, which means it is empty on the host.
+- `.env` is gitignored: defaults for a fresh clone belong in `.env.example`.
 
 ## Architecture
 
-Each page is a self-contained file: PHP logic at the top, HTML below. There are no shared includes, so these blocks are copy-pasted and a change must be repeated in every page:
+Standard Laravel MVC: `routes/web.php` maps to controllers in `app/Http/Controllers`, which load Eloquent models and return Blade views. Every page needs the `auth` middleware except login and registration (`guest`). `/` is the home page, so guests reach the login form through the `auth` redirect.
 
-- the session guard (`session_start()` plus a redirect if `$_SESSION['nome']` is unset)
-- the `<header class="navbar">` navigation, with `class="active"` set per page
-- the footer and the `#infoModal` markup
-- the PDO connection settings (in `Login.php` and `Registrazione.php`)
+**Auth** is hand-written on Laravel's `Auth` facade (`Auth\LoginController`, `Auth\RegisterController`), with no starter kit. Registration does not log the user in; it redirects to the login form with a `status` flash message. `users` has `nome` and `cognome` instead of Laravel's default `name`. Logout is a POST form.
 
-**Auth flow:** `Registrazione.html` posts to `Registrazione.php`; the `Login` page posts to `Login.php`. Both handlers have no HTML output of their own: they redirect back with query parameters (`?errore=...`, `?successo=1`), and inline JS in the form page reads those to show messages. `$_SESSION['nome']` is what marks a user as logged in.
+**Data:** content comes from seeders in `database/seeders`.
+- `Generation` has many `Console`; `Era` has many `Game`. Both timelines share `partials/timeline-card`.
+- `Article::firma` builds the "12 Ottobre 1985 • di Redazione" line. Article text is stored as plain text and rendered with `nl2br(e(...))`.
+- `Review` keeps the author's name in `autore`, and `user_id` is nullable, because seeded reviews have no real account.
 
-**Data:** only user accounts are in MySQL. All other content is hardcoded PHP arrays in the page that renders it:
+**Views:** `layouts/app` has the navbar and footer for logged-in pages, `layouts/guest` is for the auth forms. Pages add scripts through `@push('scripts')`.
 
-- `Articolo.php`: articles keyed by `?id=`. The cards in `Home.php` are separate static HTML, so adding an article means editing both files.
-- `Console.php` and `Video_Giochi.php`: nested arrays (generation/era containing items), rendered with the same `.gen-section` / `.console-card` markup.
-- `Recensioni.php`: reviews live in `$_SESSION['recensioni_blog']`, so they are per-user and are lost on logout.
+**Assets** are plain files in `public/css` and `public/js`, with no Vite or npm build. Link them with `asset()`.
+- `public/js/script.js` (search, detail modal, mobile menu) is loaded by the console and games pages. It depends on the `#searchInput`, `#infoModal` and `.console-card` markup.
+- `public/js/home.js` (mini-game dropdown, Snake) is loaded only by the home page. Tetris, Flappy Bird and Pong are "coming soon" placeholders.
+- The second `DOMContentLoaded` block in `script.js` targets the home dropdown, so it never runs.
 
-**JavaScript:** `Script.js` provides live search (`#searchInput`), the detail modal for `.console-card` elements and the mobile menu. It is loaded only by `Console.php` and `Video_Giochi.php`. `Home.php` does not load it: it has its own inline script for the mini-game dropdown and the Snake game (the other mini-games are "coming soon" placeholders). The second `DOMContentLoaded` block in `Script.js` targets the Home dropdown, so it currently never runs.
-
-**CSS:** everything is in `style.css`, in sections by feature. Many one-off styles are inline in the pages. The theme is dark with `#00ffcc` as the accent.
-
-## Naming traps
-
-Check these before renaming or linking to anything:
-
-- `Login` (no extension) is the login form, and is plain HTML. `Login.php` is only the POST handler and outputs nothing on GET, yet the session guards in `Articolo.php`, `Console.php`, `Recensioni.php` and `Video_Giochi.php` redirect to it, which gives a blank page. `Home.php` and `Logut.php` correctly redirect to `Login`.
-- `Home` (no extension) is an outdated copy of `Home.php`. `Home.php` is the live page.
-- `Logut.php` is the real logout script, misspelled. `Articolo.php` links to `Logout.php`, which does not exist.
-- `Login.php` redirects to `Login.html` on a database error; that file does not exist.
-- `Recensioni.php` links to `VideoGiochi.php`; the real file is `Video_Giochi.php`.
-- File names are case-sensitive in the container, even though Windows ignores case: always match the exact name (`Script.js`, not `script.js`).
-- Navigation is inconsistent: `Articolo.php` and `Video_Giochi.php` still have `#` placeholder links.
+**Language:** `APP_LOCALE=it` but the repo has no `lang/it` files. Laravel's built-in validation messages fall back to English, so Italian messages are set per rule in the Form Requests and controllers.

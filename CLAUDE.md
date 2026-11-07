@@ -8,7 +8,7 @@ RetroGaming.it: a retro video game blog on Laravel 13 (PHP 8.4 in Docker, MariaD
 
 ## Commands
 
-Run everything through Docker. The local PHP in `C:\Users\loryp\php` has no `php.ini`, so it lacks extensions Laravel needs, and Composer is not installed on the host.
+Run everything through Docker. The local PHP in `C:\Users\loryp\php` has no `php.ini` and no `ext` folder, so it can't load the extensions Laravel needs, and Composer is not installed on the host. `docs/local-setup.md` covers running without Docker. The minimum PHP is 8.4.1.
 
 ```
 docker compose up -d --build                                   # start, site at http://localhost:8080

@@ -2,9 +2,9 @@
 
 A retro video game blog built with Laravel. Users register and log in, then can read articles, browse console and game timelines, leave reviews and play Snake.
 
-The whole site runs in Docker, so you don't need to install PHP, Composer, a web server or a database.
+The whole site runs in Docker, so you don't need to install PHP, Composer, a web server or a database. To install those yourself instead, see [Running without Docker](docs/local-setup.md).
 
-## Launch the site
+## Get started with Docker
 
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and start it.
 2. From the project folder, run:
